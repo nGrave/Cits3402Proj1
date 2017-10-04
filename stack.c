@@ -12,6 +12,7 @@ void stackInit(Stack* s, int maxSize){
     s->top = -1;
     s->maxSize =maxSize;
     s->c = malloc(sizeof(int) * maxSize);
+ 
     if(s->c == NULL  ){
     printf("Stack Init Failed");
     }
@@ -19,7 +20,8 @@ void stackInit(Stack* s, int maxSize){
 
 void stackDestroy(Stack* s ){
 	s->top = -1; 
-	free(s->c); 
+	free(s->c);
+        s->c = NULL;	
 }
 
 int isFull(Stack *s){

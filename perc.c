@@ -1,6 +1,6 @@
-// CITS 3402 Project
-// AUTH : Nathan Graves 21256779 & Matthew Hall TODO
-// Compiled with gcc-4.9 -fopen -o {filename} perc.c stack.c 
+// CITS 3402 Project 1
+// AUTH : Nathan Graves 21256779 & Matthew Hall TODO (Add Matts Student ID)
+// Compiled with gcc-4.9 -fopenmp -o {filename} perc.c stack.c 
 //
 //
 // USAGE : ./perc n p {OPTIONS} :
@@ -18,39 +18,29 @@
 // 				S N S N S N     X = VOID
 // 				X S X S X S
 // 				S N S N S N
-//      TODO: KNOWN BUGS:
-//      	./perc n 1 drops some elements with large value of n  10000+ for eg.  -Uncomment lines 205 - 210 to Help Diagnose 
-//		./perc n 1 -o (or -c) malloc errors (accessing already freed memory) 
 //
-//	ISSUES   : parallel code seems to always be slower regardless of number of threads cache hit/miss problems in way array is currentlty split
-//		   ie: Split in rows so a 10*10 matrix with 4 threads thread 1 will do up to  mat[2][10] thread 2 [4][10] thread3 [6][10] and thread 4 gets the biggest chunk till mat[10][10] 
-//		   becasue of the leftover after division. 
-//			
-//		  This is not including that the peices havent been put back together yet still thinking about implementation of dfs across threads becasue of the wrap around nature
-//		  there is some stuff on SO for dfs with parralell regions but use of different data structures needed IE graph or tree.
-//
-//
-//
-//	Effiency : Recursive Vs Iterative DFS ?
-//		   Minimizing cache miss somehow? 
-//		   derefrenicng vs Lookups  -- ALL Relativaly Minimal in comparaison
+// 		-Put Peices Together And Check Sequential Percolation
+// 		-Fix Memory Leak (see Below) 
+// 		-Optimize 
+// 		-Clean up Code
+//		-Report
 //		
+//      TODO: KNOWN BUGS:
+//      	./perc n 1 drops some elements with large value of n  10000+ for eg.  -Uncomment lines 205 - 210 to Help Diagnose //		
 //	Paperwork: 
 //		  Graphs on speed up etc. 
 //		  see project Description.
 //
-//	More: ? 
-//
 //	DUE DATE 8th of October .
-//
 //
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
+#include <sys/time.h>
 #include "stack.h"
 #include <string.h>
 #include <omp.h>
 
+typedef int **Matrix; 
 
 float percProb(){
     return (double)rand() / (double)((unsigned)RAND_MAX + 1);
@@ -96,21 +86,19 @@ void SeedMatrix(int **mat, int n, float p){
 
 int findCluster( int size, int l,  int **mat, int print, int percCond, int tid){   
 
-   	//Set all sites to unvisited
-
-     int **visited = malloc(l * sizeof(int *));
-     int *t = malloc(l * size  * sizeof(int));
-        for(int i = 0; i < size; i++){
+     Matrix visited = malloc(l * sizeof(int *));
+     int *t = malloc(size * size  * sizeof(int));
+       for(int i = 0; i < l; i++){
 	 visited[i] = t +( i * size);
 	}
 
-    for(int i= 0; i < l; i++){
-	    for(int j =0 ; j < size; j++){
-		    visited[i][j] = 0; 
-	     }
-    }
+       for(int i = 0 ; i < l; i++){
+	for(int j = 0 ; j < size; j++){
+		visited[i][j] = 0 ;
+	}
+       }
 
-    //Variables for tracking cluster Stats	
+     //Variables for tracking cluster Stats	
     int clusIdx = 1;
     int clusHeight =0;
     int clusWidth = 0;
@@ -122,6 +110,7 @@ int findCluster( int size, int l,  int **mat, int print, int percCond, int tid){
     //Loop through every element
     for(int i =0; i< l; i++){
     	for(int j=0 ;j < size ;j++){    
+
 	//Move along becasue this site is Part of another cluster        
 	if(visited[i][j] == 1) continue; 
 	//Mark as Visited       
@@ -130,11 +119,12 @@ int findCluster( int size, int l,  int **mat, int print, int percCond, int tid){
 	if(mat[i][j]  == 1){
 		//Time This Cluster
 		//clock_t t = clock(); 
+
 		//Initiate a new stack -- Space optimiation by subtracing the largest cluster As garunteed not to be larger than that;
 		 Stack *s;
 		 s= malloc(sizeof(*s)*l);
 		 stackInit(s, l*size - largestCluster);
-
+	
 		//printf("-------------------Start Of New Cluster ID= %d-----------------\n", clusIdx);
 		push(s, i * l  + j );		
 	        int rowsOccupied[l];
@@ -169,7 +159,7 @@ int findCluster( int size, int l,  int **mat, int print, int percCond, int tid){
 			int right =  (col+1 + size) % size ;
 			//To Help Visualize individual clusters ( Comment out for large clusters)
 			if(print == 1)
-		//	mat[row][col] = clusIdx; 
+			mat[row][col] = clusIdx; 
 			//Search Above,Below,Left and Right For Bond Sites
 
 			//printf("Thread %d, row = %d col = %d above = %d below =%d\n",tid ,row ,col, above ,below);
@@ -204,48 +194,56 @@ int findCluster( int size, int l,  int **mat, int print, int percCond, int tid){
 	 //freeStack
 	 stackDestroy(s);	 
 	 free(s);
-         
+       
 	//MEMORY LEAK HELP - UNCOMMENT FOLLOWING LINES AND RUN ON LARGE ARRAY 10,000+ seems to miss a few elements for some reason
 	// 	 for(int i = 0 ; i < size; i++){
 	//	 for(int j =0; j< size; j++){
 	//	if(visited[i][j] == 0) printf("Not Visited[%d][%d] = %d\n", i,j,visited[i][j] );
         //	}}	
+
 	
        	//End Of cnnected neigbur search
 	 for(int count=0; count<size; count++){
 		 clusWidth += colsOccupied[count];
+
 	  }
 	 for(int count=0; count<l; count++){
 		 clusHeight += rowsOccupied[count];
+
 	 }
 
 	 //DOES IT PERCOLATE
          if(percCond ==1 ){ 
 	  if(clusWidth==size || clusHeight ==size)
 		percolates = 1; //Use this line for horizontal or vertical percolation	
+	 
 	 }
+
 	 else if(clusWidth==size && clusHeight==size) percolates = 1; //Use this line for two-way percolation
 
 	 //printf("----Custer %d Has %d Elements, It is %d elements wide and %d elements high\n", clusIdx, elementsInCluster , clusWidth, clusHeight);	
-         
+
 	 //largest Cluster Check
 	 if(elementsInCluster > largestCluster){
 		 lcidx = clusIdx;
 		 largestCluster = elementsInCluster;              
 	 }
+
 	 //Reset Counters
          elementsInCluster=0;
 	 clusIdx++;
 	 clusWidth =0;
 	 clusHeight =0;
 	}
+
     //End Of Matrix    
 	}
-     }
+
+     } 
+
     free(t);    
     free(visited);
     printf("Largest Cluster = %d\n", largestCluster);
- 
     //Visualize Largest Cluster
     if(print == 1){
     printLargestCluster(mat, l, size , lcidx);
@@ -258,9 +256,12 @@ int runParalell(int n, int  **mat,  int percCond, int printMat,  int numThreads 
 
      //OPEN MP START
      int nthreads, tid;   
+ 
      clock_t time  =clock();
      omp_set_num_threads(numThreads);  
-     printf("numThreads = %d\n", numThreads);
+
+     struct timeval start, end;
+     gettimeofday(&start,NULL);
      #pragma omp parallel private(nthreads, tid)
      {
      int arrPartSize = n/numThreads;	
@@ -280,10 +281,16 @@ int runParalell(int n, int  **mat,  int percCond, int printMat,  int numThreads 
      peiceSize = end -start;
      clock_t t =clock();
      //Find Clusters 
+    
+     struct timeval intern_start, intern_end;
+     gettimeofday(&intern_start,NULL);
+    
      int perc  = findCluster(n ,peiceSize,   mat+start , printMat, percCond, tid); 
-     t = clock() - t;
-     double time_taken = ((double)t/CLOCKS_PER_SEC); // in seconds
-     printf("Time taken in finding Clusters is %f\n", time_taken);
+     gettimeofday(&intern_end, NULL);
+     double time_taken = ((intern_end.tv_sec  - intern_start.tv_sec) * 1000000u +
+		             intern_end.tv_usec - intern_start.tv_usec) / 1.e6;
+ 
+     printf(BLU "Time taken for Thread %d   %12.10f\n"RESET,tid,   time_taken);
      if(tid == 0) {
 	//printf("Master Thread WAITS FOR CHILDREN - Check Percolation Here  %d\n",omp_get_num_threads());
      }
@@ -293,20 +300,30 @@ int runParalell(int n, int  **mat,  int percCond, int printMat,  int numThreads 
 
      }
      //All Threads Rejoined Master Here
-     time = clock() -time;
-     double totTime = ((double)time/CLOCKS_PER_SEC); //Seconds
-     printf(RED "Time Taken For  all peices is %f\n" RESET , totTime); 	
+   
+
+    
+     gettimeofday(&end, NULL);
+     double total_time_taken = ((end.tv_sec  - start.tv_sec) * 1000000u +
+		             end.tv_usec - start.tv_usec) / 1.e6;
+ 
+     printf(RED"Total Time taken in parallel %12.10f\n"RESET, total_time_taken);
+
+     
      return 0;
 }
 
 int runNormal(int n, int **mat, int printMat, int percCond){
     
-     clock_t t =clock();
-      int perc = findCluster(n , n,  mat , printMat, percCond, 0); 
-     t = clock() - t;
-     double  time_taken = ((double)t/CLOCKS_PER_SEC); // in seconds
-     printf(RED "Time taken in series is %f\n"RESET , time_taken);
-    
+     struct timeval start, end;
+     gettimeofday(&start,NULL);
+     int perc = findCluster(n , n,  mat , printMat, percCond, 0); 
+     gettimeofday(&end, NULL);
+     double time_taken = ((end.tv_sec  - start.tv_sec) * 1000000u +
+		             end.tv_usec - start.tv_usec) / 1.e6;
+ 
+     printf(RED"Time taken (Sequential)  %12.10f\n"RESET, time_taken);
+
      if( perc == 1) 
 	printf("Matrix Percolates\n") ;    
      else printf("Matrix Does Not Percolate\n");	
@@ -332,6 +349,7 @@ int main(int argc , char* argv[]){
     int compareFlag =0;
     int idx =3;
     int numThreads = 4; //TODO Test with more 
+    double time_taken; 
     while( idx < argc){
 	if(strncmp(argv[idx] ,"-p",2)==0 && n <=200) printMat =1;
 	if(strncmp(argv[idx], "-v",2)==0) percCond =1;
@@ -349,19 +367,22 @@ int main(int argc , char* argv[]){
 
      printf("nthreads= %d\n", numThreads);  
     //Matrix Memory Allocation; 
-     int **mat = malloc(n* sizeof(int *));
+     Matrix mat = malloc(n* sizeof(int *));
      int *temp = malloc(n * n  * sizeof(int));
      for(int i = 0; i < n; i++){
 	 mat[i] = temp + ( i * n);
      }
 
      //Seed The Matrix	
-     clock_t t;
-     t = clock();
+     struct timeval start, end;
+     gettimeofday(&start, NULL);
+
      SeedMatrix(mat,n, prob); 
-     t = clock() - t;
-     double time_taken = ((double)t)/CLOCKS_PER_SEC; // in seconds
-     printf("Time taken in Seeding Matrix is %f\n", time_taken);
+     gettimeofday(&end, NULL);
+     time_taken = ((end.tv_sec  - start.tv_sec) * 1000000u +
+		             end.tv_usec - start.tv_usec) / 1.e6;
+ 
+     printf("Time taken in Seeding Matrix is %12.10f\n", time_taken);
       
      //Copy of matrix for comparison  
      int **mat2 = malloc(n* sizeof(int *));
@@ -375,11 +396,13 @@ int main(int argc , char* argv[]){
 	mat2[i][j] = mat[i][j];
 	}
      }
+
+
      //Print Matrix if requested
      if(printMat == 1){
      printMatrix(mat,n); 
-     }  
-   
+     }
+
      //FIND CLUSTERS
      if(ompflag ==0){
      runNormal(n,mat,printMat,percCond); 
@@ -388,6 +411,8 @@ int main(int argc , char* argv[]){
      runParalell(n,mat2,printMat,percCond,numThreads);
      }
      //Free Memory 
+     free(temp2);
+     free(mat2);
      free(temp);
      free(mat);
      return 0; 

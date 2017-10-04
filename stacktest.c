@@ -6,18 +6,25 @@
  int main(int argc, char* argv[])
 {
 
+
+
+      if(argc != 2){
+	      printf(RED "Usage: ./prog sizeofstack\n" RESET);
+	}	      
       int n = atoi(argv[1]);
+      
+      
       Stack s; 
       stackInit(&s , n);
 
       for(int i = 0; i < n; i++) {
       push(&s, i);
-      printf("\rpushing %d to stack",i);
+      printf(BLU "pushing %d to stack\n" RESET,i);
 		      }
 
 
       for(int i = 0; i < n; i++) {
-      printf("\r popping %d to stack",pop(&s));
+      printf(RED"popping %d to stack\n"RESET,pop(&s));
 		      }
      return 0;
     

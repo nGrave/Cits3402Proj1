@@ -15,6 +15,7 @@ void stackInit(Stack* s, int maxSize){
  
     if(s->c == NULL  ){
     printf("Stack Init Failed");
+    exit(EXIT_FAILURE);
     }
 }
 

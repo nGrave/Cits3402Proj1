@@ -40,7 +40,7 @@
 #include <string.h>
 #include <omp.h>
 
-typedef int **Matrix; 
+
 
 float percProb(){
     return (double)rand() / (double)((unsigned)RAND_MAX + 1);

@@ -732,17 +732,17 @@ int main(int argc , char* argv[]){
     int bPerc =0;
     int percCond =0;
     int ompflag =0; 
-    int compareFlag =0;
+    int compareFlag =0;    
+    int MPI =0;
     int idx =3;
     int numThreads = 1; 
-
-    int MPI =1;
 
     double time_taken; 
     while( idx < argc){
 	if(strncmp(argv[idx] ,"-p",2)==0 && n <=200) printMat =1;
 	if(strncmp(argv[idx], "-v",2)==0) percCond =1;
 	if(strncmp(argv[idx], "-b",2)==0) bPerc =1; 
+	if(strncmp(argv[idx], "-m",2)==0) MPI =1; 
 	if(strncmp(argv[idx], "-o",2)==0) {
 		ompflag =1;
 		numThreads = atoi(argv[idx+1]) ;  
@@ -753,9 +753,11 @@ int main(int argc , char* argv[]){
 	}	
     	idx++;
     }
-	
-    int test = runMpi();
 
+
+    if(MPI){
+    int test = runMpi();
+    }
 
     int numPieces = numThreads; 
     //An array of peices makes the full matrix 
@@ -867,7 +869,7 @@ int main(int argc , char* argv[]){
 	     runParalell(n,mat,0,percCond,numThreads,fullMatrix);
      }
      
-     if(!ompflag && !compareFlag)
+     if(!ompflag && !compareFlag && !MPI)
 	     runNormal(n,mat,printMat,percCond, fullMatrix); 
 
      //Free Memory 

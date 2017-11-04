@@ -14,6 +14,7 @@
 #include "stack.h"
 #include <string.h>
 #include <omp.h>
+#include "mpi.h"
 
 
 // Will add one to number, wrapping around if necessary
@@ -686,6 +687,36 @@ int runNormal(int n, site **mat, int printMat, int percCond,piece *m){
 }
 
 
+//Each Node in the cluster gets one piece to work on TODO - Each piece could utilize the 12 cores at each node to futher divide the work using openMP?
+int runMPI(){
+	char	hostname[MPI_MAX_PROCESSOR_NAME];
+
+	int 	numPieces, //In our case numPieces = num Nodes
+		nodeID,   //Individual Id For Node/Piece
+		len, 
+	
+
+	MPI_Status status;
+
+	MPI_Init();
+	MPI_Get_processor_name(hostname,&len);
+
+
+	MPI_Comm_size(MPI_COMM_WORLD, &numPieces);
+	MPI_Comm_rank(MPI_COMM_WORLD,&nodeID);
+	
+	printf ("Hello from Piece/Node %d on %s!\n", taskid, hostname);
+
+	if (nodeID == MASTER)
+		printf("MASTER: Number of nodes/pieces is: %d\n",numPieces);
+
+	MPI_Finalize();
+
+
+}
+
+
+
 
 int main(int argc , char* argv[]){
 
@@ -723,6 +754,9 @@ int main(int argc , char* argv[]){
     	idx++;
     }
 	
+    int test = runMpi();
+
+
     int numPieces = numThreads; 
     //An array of peices makes the full matrix 
 

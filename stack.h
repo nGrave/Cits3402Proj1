@@ -16,6 +16,10 @@
 #define CYN   "\x1B[36m"
 #define WHT   "\x1B[37m"
 #define RESET "\x1B[0m"
+
+#define MASTER 0
+
+
 typedef int **Matrix; 
 // Stack And Opertations
 

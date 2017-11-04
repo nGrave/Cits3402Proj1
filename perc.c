@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/time.h>
+#include <time.h>
 #include "stack.h"
 #include <string.h>
 #include <omp.h>
@@ -41,7 +42,7 @@ void  printLargestCluster(site **mat,int n ,int m, int ldx, int flag){
 		 else  printf(RED  "%c" RESET  , 'o');  
              }
 
-	     else  printf(BLU "%3d"RESET, mat[i][j]);
+	     else  printf(BLU "%d"RESET, mat[i][j].siteBond);
 	    
        	
     }
@@ -693,19 +694,19 @@ int runMPI(){
 
 	int 	numPieces, //In our case numPieces = num Nodes
 		nodeID,   //Individual Id For Node/Piece
-		len, 
+		len; 
 	
 
 	MPI_Status status;
 
-	MPI_Init();
+	MPI_Init(NULL,NULL);
 	MPI_Get_processor_name(hostname,&len);
 
 
 	MPI_Comm_size(MPI_COMM_WORLD, &numPieces);
 	MPI_Comm_rank(MPI_COMM_WORLD,&nodeID);
 	
-	printf ("Hello from Piece/Node %d on %s!\n", taskid, hostname);
+	printf ("Hello from Piece/Node %d on %s!\n",nodeID, hostname);
 
 	if (nodeID == MASTER)
 		printf("MASTER: Number of nodes/pieces is: %d\n",numPieces);
@@ -756,7 +757,7 @@ int main(int argc , char* argv[]){
 
 
     if(MPI){
-    int test = runMpi();
+    int test = runMPI();
     }
 
     int numPieces = numThreads; 

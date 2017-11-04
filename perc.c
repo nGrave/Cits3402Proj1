@@ -195,15 +195,15 @@ void initCluster(cluster *c, int width){
 
 }
 
-int findCluster( int size, int l,  site **mat ,int print, int percCond, piece *p, int parallel,int tid){   
+int findCluster( int width, int height,  site **mat , piece *p, int parallel){   
 
-     Matrix visited = malloc(l *  sizeof(int *));
-     int *temp = malloc( l  * size * sizeof(int));
-     for(int i = 0; i < l; i++){
-	 visited[i] = temp + ( i * size);
+     Matrix visited = malloc(height *  sizeof(int *));
+     int *temp = malloc( height  * width * sizeof(int));
+     for(int i = 0; i < height; i++){
+	 visited[i] = temp + ( i * width);
      }
-     for(int i = 0 ; i < l ; i++){
-	     for(int j =0; j< size; j++){
+     for(int i = 0 ; i < height ; i++){
+	     for(int j =0; j< width; j++){
 		visited[i][j] = 0;
 	     }
      }
@@ -213,8 +213,8 @@ int findCluster( int size, int l,  site **mat ,int print, int percCond, piece *p
     int lcidx =0;	
    
     //START OF MATRIX SEARCH
-    for(int i =0; i< l; i++){
-    	for(int j=0 ;j < size ;j++){    
+    for(int i =0; i< height; i++){
+    	for(int j=0 ;j < width ;j++){    
          
 	//Move along becasue this site is Part of another cluster        
 	if(visited[i][j] == 1) continue; 
@@ -223,11 +223,11 @@ int findCluster( int size, int l,  site **mat ,int print, int percCond, piece *p
 	// If This site has a bond	
 	if(mat[i][j].siteBond  == 1){	
 	        Stack *s;
-		s= malloc(sizeof(*s)*l);
-		stackInit(s, l*size - p->largestCluster); 
+		s= malloc(sizeof(*s)*height);
+		stackInit(s, height*width - p->largestCluster); 
 		cluster c; 
-  		initCluster(&c ,size);
-		push(s, i * size  + j );
+  		initCluster(&c ,width);
+		push(s, i * width  + j );
 		
 		c.colsOccupied[j] = 1;           
 		c.rowsOccupied[i] = 1;   
@@ -235,8 +235,8 @@ int findCluster( int size, int l,  site **mat ,int print, int percCond, piece *p
 	       	// Search for connected neighbours	
 		 while(!isEmpty(s)) {
 			int cur = pop(s);	
-			int row = cur/size;
-			int col = cur%size;
+			int row = cur/width;
+			int col = cur%width;
 			int above = -1;
 			int below = -1;
 			c.clusSize++; 
@@ -248,20 +248,20 @@ int findCluster( int size, int l,  site **mat ,int print, int percCond, piece *p
 			  		above = row -1;
 				}
 				 		
-				if(row != l-1){	  
+				if(row != height-1){	  
 			  		below = row +1;	 
 				}		
 			}
 
 			//Wrap around for sequential Matrix
 			else{
-			above =  (row-1 + l) % l ;
-			below =  (row+1 + l) % l ;
+			above =  (row-1 + height) % height ;
+			below =  (row+1 + height) % height ;
 			}
                         				
   			//Horizontal wrap arond Regardless.
-			int left   =  (col-1 + size) % size ;
-			int right =  (col+1 + size) % size ;
+			int left   =  (col-1 + width) % width ;
+			int right =  (col+1 + width) % width ;
 			
 			//Identify Clusters For Peiceing them Together ( OR Displaying the largest cluster in Sequential Run)
 		     	mat[row][col].siteBond = clusterIdx; 
@@ -272,7 +272,7 @@ int findCluster( int size, int l,  site **mat ,int print, int percCond, piece *p
 			if(above != -1){
 				if( mat[row][col].upperBond  && !visited[above][col]) {
 			        //printf("Thread %d Pushing Above Element  mat[%d][%d] (1d = ele %d) to the stack\n",tid ,above,col, above*size+col );
-				push(s, above * size  + col );
+				push(s, above * width  + col );
 			      	visited[above][col] = 1;
 				c.rowsOccupied[above] = 1;
 				}
@@ -281,7 +281,7 @@ int findCluster( int size, int l,  site **mat ,int print, int percCond, piece *p
 			if(below!= -1){		
 				if( mat[row][col].lowerBond  && !visited[below][col]) {
 			        //printf("Thread %d Pushing Below Element  mat[%d][%d] (1d = ele %d) to the stack \n",tid,below,col, below*size+col );
-				push(s, below * size  + col );
+				push(s, below * width  + col );
 			       	visited[below][col] = 1;
 				c.rowsOccupied[below]= 1;
 				}
@@ -289,14 +289,14 @@ int findCluster( int size, int l,  site **mat ,int print, int percCond, piece *p
 			//LEFT-        Look at left neighbour Always inc wraparound
 				if( mat[row][col].leftBond  && !visited[row][left]) {
 			        //printf("Thread %d Pushing Left Element mat[%d][%d] (1d = ele %d) to the stack \n",tid ,row,left, row*size+left );
-				push(s,  row * size  + left );
+				push(s,  row * width  + left );
 			      	visited[row][left] = 1;
 				c.colsOccupied[left] = 1;
 				}
 			//RIGHT-      Look at right Neigbour Always inc wraparound
 				if( mat[row][col].rightBond  && !visited[row][right]) {
 		  	        //printf("Thread %d Pushing Right Element  mat[%d][%d] (1d = ele %d) to the stack \n",tid, row,right, row*size+right ); 
-		       		push(s, row * size  + right );
+		       		push(s, row * width  + right );
 			       	visited[row][right] = 1;
 				c.colsOccupied[right] = 1;
 			}
@@ -314,7 +314,7 @@ int findCluster( int size, int l,  site **mat ,int print, int percCond, piece *p
 	//Reset Counters
 	
 	
-	 for(int i =0; i< size; i++){
+	 for(int i =0; i< width; i++){
 			if(c.rowsOccupied[i]==1)
 			c.clusHeight++;
 
@@ -325,7 +325,7 @@ int findCluster( int size, int l,  site **mat ,int print, int percCond, piece *p
 
 
 	 clusterIdx ++; 
-         insertCluster(p , size ,c );
+         insertCluster(p , width ,c );
 	 p->numClusters++;
 
 	//END OF THIS CLUSTER
@@ -339,7 +339,7 @@ int findCluster( int size, int l,  site **mat ,int print, int percCond, piece *p
       
     free(temp);  
     free(visited);
- //   printf("Thread %d Finished l is %d width is %d Largest Cluster in this peice is = %d\n",tid, l,size, p->largestCluster);   
+ 
    
     return 0;
 }
@@ -393,55 +393,58 @@ void growCluster(piece *m, int pceID, int clusID, int pce2ID, int clus2ID, int n
 }
 
 
-int runParalell(int n, site  **mat,  int printMat, int percCond,  int numThreads, piece *m){
+int runParalell(int n, site  **mat,  int printMat, int percCond,  int numThreads){
+	//Set Threads
+	omp_set_num_threads(numThreads);  
 
-     omp_set_num_threads(numThreads);  
+	//Initial Size of a piece (Dynamic according to clusters added) 
+	size_t initialSize = sizeof(int) + sizeof(cluster) + 2*n;
+     	
+	//Piece Structure
+	piece *m = malloc(sizeof(piece) * numThreads);
+	for(int i = 0 ; i < numThreads; i++ ){	
+      		initPiece(&m[i] , initialSize ,n);
+     	}   
 
-     int tid;   
-     int arrPartSize = n/numThreads;	
-     int leftOvers= n - (numThreads* arrPartSize);     
+	int tid;   
+     	int arrPartSize = n/numThreads;	
+     	int leftOvers= n - (numThreads* arrPartSize);     
 
-     //Start Timer
-     struct timeval start, end;
-     gettimeofday(&start,NULL);
-     #pragma omp parallel private(tid)
-     {
+    	 //Start Timer
+     	struct timeval start, end;
+     	gettimeofday(&start,NULL);
 
-     tid = omp_get_thread_num();
-    
-     int end;
-     int start; 
-     int peiceSize;
-         
-     for(int i = 0; i < numThreads ; i++){
-	  start = (arrPartSize *tid);
-	  end   = start + arrPartSize;
-        if(tid == numThreads-1) end += leftOvers;
-     }
-     peiceSize = end -start; 
+	//Forking Here
+     	#pragma omp parallel private(tid)
+    	{
+	
+	//Allocate Sections For Children Threads
+	tid = omp_get_thread_num();
+	int start = (arrPartSize *tid);
+	int end   = start + arrPartSize;
+	if(tid == numThreads-1) end += leftOvers;
+	int peiceSize = end -start; 
      
-     //Also Timing Each Thread 
-     struct timeval intern_start, intern_end;
-     gettimeofday(&intern_start,NULL);
-    
-     int perc  = findCluster(n ,peiceSize,   mat+start , printMat, percCond, &m[tid],  1 ,tid); 
-     gettimeofday(&intern_end, NULL);
-     double time_taken = ((intern_end.tv_sec  - intern_start.tv_sec) * 1000000u +
+    	//Timing Each Thread (For Useful Info?)
+     	struct timeval intern_start, intern_end;
+     	gettimeofday(&intern_start,NULL);
+
+    	//Initiate DFS of each Piece 
+     	int perc  = findCluster(n ,peiceSize,   mat+start , &m[tid] ,tid); 
+     	gettimeofday(&intern_end, NULL);
+     	double time_taken = ((intern_end.tv_sec  - intern_start.tv_sec) * 1000000u +
 		             intern_end.tv_usec - intern_start.tv_usec) / 1.e6;
  
-     printf(BLU "Time taken for Thread %d   %12.10f\n"RESET,tid,   time_taken);
+     	printf(BLU "Time taken for Thread %d   %12.10f\n"RESET,tid,   time_taken);
+     	}
 
- 
-     }
-     //All Threads Rejoined Master Here  
-     int maxCluster = 0; 
-     int maxClusterIdx =0;
-    
+     	//All Threads Rejoined Master Here  
+         
 
-     //Uhh Piece It Back Together From Bottom To Top..
+	//Uhh Piece It Back Together From Bottom To Top..( )
     	for(int i =numThreads-1  ; i > 0; i--){
 		int tr =   (arrPartSize * i) ;
-	
+		
 		for(int j = 0 ; j < n; j++){
 			int ths = (mat[tr][j].siteBond) -1;
 			int tht = (mat[tr -1 ][j].siteBond) -1;
@@ -599,14 +602,11 @@ int runParalell(int n, site  **mat,  int printMat, int percCond,  int numThreads
           }
       }
    
-//	printf("percCond = %d hperc =%d vperc =%d fullperc= %d width = %d\n",percCond, hperc,vperc, fullPerc,m[pIndex].pieceClusters[cIndex].clusWidth  );
-
       if(!percCond){
 	if(fullPerc){
 	 printf(YEL "Matrix Percolates Largest CLuster is %d \n"RESET , lc); 
 	}
 	else printf(YEL "Matrix Does Not Percolates Largest CLuster is %d \n"RESET , lc); 
-
 
       }
          	
@@ -623,17 +623,27 @@ int runParalell(int n, site  **mat,  int printMat, int percCond,  int numThreads
      
      printf(RED"Total Time taken in parallel %12.10f\n"RESET, total_time_taken);
 
+     free(m);
      return lc;
 }
 
 
 // SEQUENTIAL RUN
-int runNormal(int n, site **mat, int printMat, int percCond,piece *m){
+int runNormal(int n, site **mat, int printMat, int percCond){
+
+     size_t initialSize = sizeof(int) + sizeof(cluster) + 2*n;
+    
+     piece *m = malloc(sizeof(piece));
+  
+     initPiece(&m[0] , initialSize ,n);
+       
+
+
     
      struct timeval start, end;
      gettimeofday(&start,NULL);
 
-     int perc = findCluster(n , n,  mat , printMat, percCond, &m[0],0, 0); 
+     int perc = findCluster(n , n,  mat,  &m[0], 0); 
 
      gettimeofday(&end, NULL);
      double time_taken = ((end.tv_sec  - start.tv_sec) * 1000000u +
@@ -684,30 +694,55 @@ int runNormal(int n, site **mat, int printMat, int percCond,piece *m){
      if(printMat)
      printLargestCluster(mat,n,n,m[0].largestClusterIdx,1);
 
+    free(m);
     return lc;     
 }
 
 
 //Each Node in the cluster gets one piece to work on TODO - Each piece could utilize the 12 cores at each node to futher divide the work using openMP?
-int runMPI(){
+int runMPI(int n, site **mat ){
+
 	char	hostname[MPI_MAX_PROCESSOR_NAME];
 
 	int 	numPieces, //In our case numPieces = num Nodes
 		nodeID,   //Individual Id For Node/Piece
 		len; 
 	
+        //setup Outer Pieces
+	size_t initialSize = sizeof(int) + sizeof(cluster) + 2*n;
+
+	piece *nodes = malloc(sizeof(piece) * numPieces);
+   	for(int i = 0 ; i < numPieces; i++ ){	
+		initPiece(&nodes[i] , initialSize ,n);
+        }    
+
 
 	MPI_Status status;
+		
+	//numNodes And NumCores Defined in stack.h for now
+	int partSize = n/numNodes;	
+	int leftOvers= n - (numNodes * partSize);  
+
 
 	MPI_Init(NULL,NULL);
 	MPI_Get_processor_name(hostname,&len);
+         
+        int start = (partSize * nodeID);
+	int end   = start + partSize;
+
+     		
+        if(nodeID == numNodes-1) end += leftOvers;
+     
+    	int pieceSize = end -start; 
 
 
 	MPI_Comm_size(MPI_COMM_WORLD, &numPieces);
 	MPI_Comm_rank(MPI_COMM_WORLD,&nodeID);
-	
-	printf ("Hello from Piece/Node %d on %s!\n",nodeID, hostname);
 
+	printf ("Node%d on %s Starting FindClusters\n",nodeID, hostname);
+
+	findCluster(n , pieceSize,  mat+start , &nodes[nodeID], nodeID);
+	
 	if (nodeID == MASTER)
 		printf("MASTER: Number of nodes/pieces is: %d\n",numPieces);
 
@@ -757,16 +792,16 @@ int main(int argc , char* argv[]){
 
 
     if(MPI){
-    int test = runMPI();
+        numThreads  = numNodes; //Overide command line argumnet
     }
 
     int numPieces = numThreads; 
     //An array of peices makes the full matrix 
 
-    int x, y;
+    int x, y; //For Testing REMOVE. TODO
 
-    //Matrix of 
-  //site in Contiguous memory
+   	 //Matrix of 
+ 	 //sites in Contiguous memory
      bMatrix mat = malloc(n* sizeof(site *));
      site *t2 = malloc( n  * n * sizeof(site));
      for(int i = 0; i < n; i++){
@@ -783,13 +818,7 @@ int main(int argc , char* argv[]){
 	}
 
      }
-	
 
-     //Adjacency List Test 
-     //Graph *g = createGraph(n*n);
-
-    // SeedMatrixGraph(g,n,prob);
-     //printGraph(g);
      //Seed The Matrix	
      struct timeval start, end;
      gettimeofday(&start, NULL);
@@ -802,23 +831,20 @@ int main(int argc , char* argv[]){
 	printf("Seeding Site Matrix.. Please Wait\n");
      	SeedMatrixSite(mat,n, prob); 
      }
+
      gettimeofday(&end, NULL);
      time_taken = ((end.tv_sec  - start.tv_sec) * 1000000u +
 		             end.tv_usec - start.tv_usec) / 1.e6;
  
      printf("\rTime taken in Seeding Matrix is %12.10f\n", time_taken);
     
-     size_t initialSize = sizeof(int) + sizeof(cluster) + 2*n;
-    
-     piece *fullMatrix = malloc(sizeof(piece) * numPieces);
-   	for(int i = 0 ; i < numPieces; i++ ){	
-	  initPiece(&fullMatrix[i] , initialSize ,n);
-       }    
-
-
      //Print Matrix if requested
      if(printMat){
      printMatrix(mat,n); 
+     }
+
+     if(MPI){
+     	int t = runMPI(n, mat);
      }
 
      if(compareFlag){
@@ -829,12 +855,6 @@ int main(int argc , char* argv[]){
      	for(int i = 0; i < n; i++){
 		 mat2[i] = temp2 + ( i * n);
      	}
-
-        piece *fullMatrix2 = malloc(sizeof(piece) * numPieces);
-   	for(int i = 0 ; i < numPieces; i++ ){	
-	  initPiece(&fullMatrix2[i] , initialSize ,n);
-       }    
-
 
        for(int i = 0 ; i < n ; i++){
 		for(int j =0 ; j < n ; j++){
@@ -848,16 +868,15 @@ int main(int argc , char* argv[]){
 	printf("\rFinished Copying Comparison Matrix..Starting Sequential Run\n");
 
 
-		//Sequential First
-    	x= runNormal(n,mat,printMat,percCond, fullMatrix); 
+	//Sequential First
+    	x= runNormal(n,mat,printMat,percCond); 
 	printf("\rFinished Sequential Run, Starting paralell Run\n");
 
 	//Now in Paralell
-    	y= runParalell(n,mat2,0,percCond,numThreads,fullMatrix2);
+    	y= runParalell(n,mat2,0,percCond,numThreads);
 	printf("\rALL DONE, Cleaning up.\n");
 		
 	//Free Memory
-	free(fullMatrix2);
 	free(temp2);
         free(mat2);
      }
@@ -867,14 +886,13 @@ int main(int argc , char* argv[]){
 
 
      if(ompflag){
-	     runParalell(n,mat,0,percCond,numThreads,fullMatrix);
+	     runParalell(n,mat,0,percCond,numThreads);
      }
      
      if(!ompflag && !compareFlag && !MPI)
-	     runNormal(n,mat,printMat,percCond, fullMatrix); 
+	     runNormal(n,mat,printMat,percCond); 
 
      //Free Memory 
-     free(fullMatrix);
      free(t2);
      free(mat);
 
